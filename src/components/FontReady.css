@@ -1,0 +1,15 @@
+/* Preserve real layout for measurement while preventing fallback glyphs from
+   being painted or focused. No wrapper changes grid/flex/direct-child rules. */
+[data-font-state="pending"] { position: relative; visibility: hidden; }
+[data-font-state="pending"] * { visibility: hidden !important; }
+[data-font-state="pending"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  min-height: 1em;
+  visibility: visible;
+  pointer-events: none;
+  border-radius: 5px;
+  background: repeating-linear-gradient(to bottom, #353535 0 12px, transparent 12px 28px);
+  opacity: .5;
+}

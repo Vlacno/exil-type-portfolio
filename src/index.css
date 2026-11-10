@@ -1,0 +1,218 @@
+/* Full Google Fonts files, compressed losslessly to WOFF2. Licenses are stored beside each font. */
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('./assets/fonts/source-serif-4/SourceSerif4-Variable.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 98%;
+}
+
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('./assets/fonts/source-serif-4/SourceSerif4-Italic-Variable.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+  size-adjust: 98%;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 98%;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/inter/Inter-Italic-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  size-adjust: 98%;
+}
+
+@font-face {
+  font-family: 'Unbounded';
+  src: url('./assets/fonts/unbounded/Unbounded-Variable.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 85%;
+}
+
+@font-face {
+  font-family: 'Roboto Condensed';
+  src: url('./assets/fonts/roboto-condensed/RobotoCondensed-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 97%;
+}
+
+@font-face {
+  font-family: 'Russo One';
+  src: url('./assets/fonts/russo-one/RussoOne-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ruslan Display';
+  src: url('./assets/fonts/ruslan-display/RuslanDisplay-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root { font-optical-sizing: none; font-synthesis: none; }
+
+:root {
+  --ink: #111111;
+  --paper: #ffffff;
+  --canvas: #cfcfcf;
+  --line: rgba(255, 255, 255, 0.18);
+  --line-dark: rgba(17, 17, 17, 0.12);
+  --muted: #8a8a8a;
+  --muted-light: rgba(255, 255, 255, 0.55);
+  --page-gutter: 24px;
+  --content-gap: 20px;
+  --interactive-duration: .25s;
+  --interactive-ease: cubic-bezier(.22, 1, .36, 1);
+  --interactive-lift: -3px;
+  --mobile-reading-inset: 14px;
+  --mobile-reading-font-size: 18px;
+  --mobile-reading-line-height: 1.45;
+  
+
+  --font-display: 'Inter', sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-ui: 'Inter', sans-serif;
+
+  font-family: var(--font-ui);
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--ink);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--interactive-duration) var(--interactive-ease);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: all var(--interactive-duration) var(--interactive-ease);
+}
+
+.site {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  width: 100%;
+  overflow-x: clip;
+  background: var(--ink);
+}
+
+.site__content { flex: 1; display: flex; flex-direction: column; }
+.site__content > * { width: 100%; }
+
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 0 var(--page-gutter);
+}
+
+@media (max-width: 640px) {
+  :root { --page-gutter: 16px; }
+  .section-divider { margin: 0 var(--page-gutter); }
+}
+
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.font-source-serif-4 { font-family: 'Source Serif 4', Georgia, serif; }
+.font-inter { font-family: 'Inter', var(--font-ui); }
+
+.btn {
+  display: inline-grid;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  
+  white-space: nowrap;
+}
+
+.btn > span,
+.btn::after {
+  grid-area: 1 / 1;
+}
+
+.btn::after {
+  content: attr(data-label);
+  visibility: hidden;
+  font-weight: 800;
+}
+
+.btn--light {
+  color: var(--paper);
+}
+.btn--dark {
+  color: var(--ink);
+}
+
+.section-header__btn {
+  transition: box-shadow var(--interactive-duration) var(--interactive-ease), text-shadow var(--interactive-duration) var(--interactive-ease);
+}
+
+.section-header__btn:hover {
+  box-shadow: inset 0 0 0 1px currentColor;
+  text-shadow: .25px 0 currentColor, -.25px 0 currentColor;
+}

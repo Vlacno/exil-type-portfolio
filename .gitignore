@@ -1,0 +1,62 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Playwright artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+.vercel
+.env*
+!.env.example
+
+# Sanity Studio generated files (source and lockfile are tracked)
+studio/.sanity/
+studio/.vercel/
+
+# Reproducible local migration snapshots, payloads and run results
+/migration/generated/
+
+# Local credentials, private keys and personal tooling state
+/.aws/
+/.ssh/
+/.codex/
+/.agents/
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Coverage, caches and local CMS exports
+/coverage/
+/.cache/
+*.tsbuildinfo
+/migration/extracted/
+/migration/transformed/
+/studio/exports/
+sanity-export*.tar.gz

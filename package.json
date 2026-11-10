@@ -1,0 +1,65 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:install": "playwright install chromium firefox webkit",
+    "test:e2e:quick": "playwright test --project=chromium",
+    "test:cms": "playwright test --config=playwright.cms.config.js",
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "glyphs:check": "py scripts/generate_glyph_coverage.py --check",
+    "glyphs:update": "py scripts/generate_glyph_coverage.py",
+    "preview": "vite preview",
+    "prepare": "husky",
+    "studio:install": "npm ci --ignore-scripts --prefix studio",
+    "studio:dev": "npm run dev --prefix studio",
+    "studio:build": "npm run build --prefix studio",
+    "test:sanity": "playwright test --config=playwright.sanity.config.js",
+    "import:local": "node migration/scripts/import-local.js",
+    "test:import-local": "node --test migration/tests/import-local.test.js",
+    "publish:portfolio": "node migration/scripts/publish-portfolio.js",
+    "test:publish-portfolio": "node --test migration/tests/publish-portfolio.test.js",
+    "research-links": "node migration/scripts/apply-research-links.js",
+    "test:research-links": "node --test migration/tests/research-links.test.js"
+  },
+  "dependencies": {
+    "@portabletext/react": "^8.0.1",
+    "@sanity/client": "8.9.0",
+    "@sanity/image-url": "^2.1.1",
+    "groq": "^6.18.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@babel/parser": "7.29.7",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "vite": "^8.3.7"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "11.0.1"
+    },
+    "@eslint/config-array": {
+      "minimatch": "11.0.1"
+    }
+  }
+}

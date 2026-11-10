@@ -1,0 +1,62 @@
+{
+  "googleFontsCommit": "5bb28733cec313b63fbd415b574b5ae35c8aa8b8",
+  "conversion": "Lossless WOFF2 compression only with fontTools; no subsetting, instancing, glyph changes or renaming. Copyright/name/license metadata preserved.",
+  "files": [
+    {
+      "file": "source-serif-4/SourceSerif4-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/sourceserif4/SourceSerif4%5Bopsz%2Cwght%5D.ttf",
+      "sourceSha256": "97b2d4da6e3cb494b5a1e66ae176914d852ccabef49e0c02c0df25f3e39aca0b",
+      "woff2Sha256": "4453d73855919eb67a8291bf2bad07782ecaf8af0e4e363d58948ff993209d51",
+      "bytes": 427556
+    },
+    {
+      "file": "source-serif-4/SourceSerif4-Italic-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/sourceserif4/SourceSerif4-Italic%5Bopsz%2Cwght%5D.ttf",
+      "sourceSha256": "15fbc7e4679489a501998c3669272637a6646388ef7e4bd77eebb5bf967a1f42",
+      "woff2Sha256": "a5e93099350c2768f7939fa51503641c961550830fb2a02083f5cf11adf227b5",
+      "bytes": 346088
+    },
+    {
+      "file": "inter/Inter-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "woff2Sha256": "13b4cddc57045d40b411008e61588c8f81aa0bd72fe884624831a0ff9c4d159a",
+      "bytes": 350460
+    },
+    {
+      "file": "inter/Inter-Italic-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/inter/Inter-Italic%5Bopsz%2Cwght%5D.ttf",
+      "sourceSha256": "acd98e64795781b2058f07b18475e0ecee2a0fe2b42a49e2f9e37d0d6bf66ce6",
+      "woff2Sha256": "cad8fca9a8eee76c402bff11e14b95999d99cc7a64541785f94fabd25bea1dcf",
+      "bytes": 386344
+    },
+    {
+      "file": "unbounded/Unbounded-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/unbounded/Unbounded%5Bwght%5D.ttf",
+      "sourceSha256": "323b511be380c8d474ef030686b71aedde501f8d9cd46da558b7c40454372c3f",
+      "woff2Sha256": "e5382d3550933388d502fca14be603db377b09a1429c60010b64fc24d72fbfcf",
+      "bytes": 260104
+    },
+    {
+      "file": "roboto-condensed/RobotoCondensed-Variable.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/robotocondensed/RobotoCondensed%5Bwght%5D.ttf",
+      "sourceSha256": "dace262afcee68a5276f200d8026c57221735c0118ab5fda8c2c0d3dc409a8d0",
+      "woff2Sha256": "934acd8f4125711bafa75ce010dd4c23ff1232d83bc7342a39895ebd65a39b10",
+      "bytes": 169592
+    },
+    {
+      "file": "russo-one/RussoOne-Regular.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/russoone/RussoOne-Regular.ttf",
+      "sourceSha256": "bc0abcc660bd8b7ad3000ecb2898a27c58a29a50f7ec81652fa12e75148d09df",
+      "woff2Sha256": "13e9a68d703b3dd7043a2b432ab813966a5cbbdfeeaf85b8e6e78e3b7c03261f",
+      "bytes": 13508
+    },
+    {
+      "file": "ruslan-display/RuslanDisplay-Regular.woff2",
+      "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/ruslandisplay/RuslanDisplay-Regular.ttf",
+      "sourceSha256": "6fb5f4db06869e886ca5da3760c547c6d3ebec82aebd3678f314e99ae3347b09",
+      "woff2Sha256": "1cd7a95987770653cf9826344ef598330ba798a60319a3e4a39637a358f540db",
+      "bytes": 14168
+    }
+  ]
+}

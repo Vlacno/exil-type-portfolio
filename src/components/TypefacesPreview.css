@@ -1,0 +1,88 @@
+.typefaces { background: var(--ink); padding-bottom: 86px; }
+
+.typefaces__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--content-gap);
+  padding: 0 var(--page-gutter);
+}
+
+.typeface-card {
+  display: block;
+  aspect-ratio: 5 / 3;
+  min-width: 0;
+  overflow: hidden;
+  container-type: inline-size;
+  padding: 24px 23px;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  transition: transform var(--interactive-duration) var(--interactive-ease);
+}
+
+.typeface-card:hover { transform: translateY(var(--interactive-lift));  }
+
+.typeface-card__label { display: block; height: 12px; color: var(--ink); font-size: 10px; font-weight: 500; letter-spacing: .11em; line-height: 12px; }
+.typeface-card__rule { margin: 10px 0 27px; border: 0; border-top: 1px solid rgba(17, 17, 17, .5); }
+.typeface-card__samples { display: flex; flex-direction: column; gap: 0; }
+
+.typeface-card__sample {
+  font-size: clamp(26px, 10cqw, 78px);
+  line-height: 1.04;
+  white-space: nowrap;
+}
+
+.typeface-card--unbounded .typeface-card__sample { font-family: 'Unbounded', sans-serif; }
+.typeface-card--source-serif-4 .typeface-card__sample { font-family: 'Source Serif 4', Georgia, serif; line-height: 1.03; }
+.typeface-card--with-italic .typeface-card__sample {
+  font-size: clamp(18px, 8cqw, 78px);
+  white-space: nowrap;
+  line-height: 1.04;
+}
+
+@media (min-width: 801px) and (max-width: 1150px) {
+  .typeface-card { padding: 18px; }
+  .typeface-card__rule { margin: 7px 0 12px; }
+  .typeface-card__sample { font-size: clamp(26px, 9cqw, 52px); }
+}
+
+@media (max-width: 800px) {
+  .typefaces { padding-bottom: 48px; }
+  .typefaces__grid { grid-template-columns: 1fr; padding: 0 var(--page-gutter); gap: var(--content-gap); }
+  .typeface-card { padding: 20px; }
+  .typeface-card__rule { margin-bottom: 16px; }
+}
+
+@media (max-width: 480px) {
+  .typeface-card { padding: 14px; }
+  .typeface-card__rule { margin: 7px 0 12px; }
+  .typeface-card__sample { font-size: clamp(24px, 10cqw, 40px); }
+}
+
+@media (max-width: 400px) {
+  .typeface-card { padding: 12px; }
+  .typeface-card__rule { margin-bottom: 8px; }
+  .typeface-card__sample { font-size: clamp(21px, 9cqw, 36px); }
+}
+
+/* Use one scale for every typeface card; long names can use another line. */
+@media (max-width: 1000px) {
+  .typeface-card__sample {
+    font-size: clamp(28px, 11.4cqw, 56px);
+    line-height: .98;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .typeface-card--source-serif-4 .typeface-card__sample { line-height: .88; }
+}
+
+@media (max-width: 450px) {
+  .typeface-card__sample { font-size: clamp(27px, 11.2cqw, 42px); }
+}
+
+.typeface-card .typeface-card__sample {
+  font-size: var(--typeface-sample-size, 8cqw);
+  line-height: 1.04;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}

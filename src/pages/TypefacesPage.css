@@ -1,0 +1,57 @@
+.typefaces-page { flex: 1; padding: 0 var(--page-gutter) 62px; background: var(--ink); }
+.typefaces-page__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--content-gap); }
+.typefaces-page-card { display: block; aspect-ratio: 5 / 3; min-width: 0; overflow: hidden; container-type: inline-size; padding: 24px 23px; border-radius: 10px; background: var(--paper); color: var(--ink); transition: transform var(--interactive-duration) var(--interactive-ease); }
+.typefaces-page-card:hover { transform: translateY(var(--interactive-lift));  }
+.typefaces-page-card__label { display: block; height: 12px; color: var(--ink); font-size: 10px; font-weight: 500; letter-spacing: .11em; line-height: 12px; }
+.typefaces-page-card__rule { margin: 10px 0 27px; border: 0; border-top: 1px solid rgba(17, 17, 17, .5); }
+.typefaces-page-card__samples { display: flex; flex-direction: column; gap: 0; }
+.typefaces-page-card__samples span { font-family: var(--font-ui); font-size: clamp(26px, 10cqw, 78px); line-height: 1.04; white-space: nowrap; }
+.typefaces-page-card__samples .font-unbounded { font-family: 'Unbounded', sans-serif; }
+.typefaces-page-card__samples .font-roboto-condensed-russo-one { font-family: 'Roboto Condensed', sans-serif; }
+.typefaces-page-card__samples .font-russo-one { font-family: 'Russo One', sans-serif; }
+.typefaces-page-card__samples .font-source-serif-4 { font-family: 'Source Serif 4', Georgia, serif; }
+.typefaces-page-card__samples .font-ruslan-display { font-family: 'Ruslan Display', serif; }
+.typefaces-page-card__samples .font-inter { font-family: 'Inter', var(--font-ui); }
+.typefaces-page-card--serif .typefaces-page-card__samples span { line-height: 1.03; }
+.typefaces-page-card--display .typefaces-page-card__samples span { line-height: .95; }
+.typefaces-page-card:nth-child(5) { grid-column: 1; }
+.typefaces-page-card--with-italic .typefaces-page-card__samples > span {
+  font-size: clamp(18px, 8cqw, 78px);
+  white-space: nowrap;
+  line-height: 1.04;
+}
+@media (min-width: 801px) and (max-width: 1150px) { .typefaces-page-card { padding: 18px; } .typefaces-page-card__rule { margin: 7px 0 12px; } .typefaces-page-card__samples span { font-size: clamp(26px, 9cqw, 52px); } .typefaces-page-card--display .typefaces-page-card__samples span { font-size: clamp(20px, 8.5cqw, 48px); } }
+@media (max-width: 800px) { .typefaces-page { padding: 0 var(--page-gutter) 40px; } .typefaces-page__grid { grid-template-columns: 1fr; } .typefaces-page-card, .typefaces-page-card:nth-child(5) { grid-column: auto; padding: 20px; } .typefaces-page-card__rule { margin-bottom: 16px; } }
+@media (max-width: 480px) { .typefaces-page-card { padding: 14px; } .typefaces-page-card__rule { margin: 7px 0 12px; } .typefaces-page-card__samples span { font-size: clamp(24px, 10cqw, 40px); } .typefaces-page-card--display .typefaces-page-card__samples span { font-size: clamp(20px, 8.5cqw, 32px); } }
+@media (max-width: 400px) { .typefaces-page-card { padding: 12px; } .typefaces-page-card__rule { margin-bottom: 8px; } .typefaces-page-card__samples span { font-size: clamp(21px, 9cqw, 36px); } .typefaces-page-card--display .typefaces-page-card__samples span { font-size: clamp(19px, 8cqw, 30px); } }
+
+/* Every card uses the same type size; the typeface still supplies its own shapes and weights. */
+.typefaces-page-card--display .typefaces-page-card__samples span {
+  font-size: clamp(26px, 10cqw, 78px);
+}
+
+@media (max-width: 1000px) {
+  .typefaces-page-card__samples span,
+  .typefaces-page-card--display .typefaces-page-card__samples span {
+    font-size: clamp(28px, 11.4cqw, 56px);
+    line-height: .98;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .typefaces-page-card--serif .typefaces-page-card__samples span { line-height: .88; }
+}
+
+@media (max-width: 450px) {
+  .typefaces-page-card__samples span,
+  .typefaces-page-card--display .typefaces-page-card__samples span {
+    font-size: clamp(27px, 11.2cqw, 42px);
+  }
+}
+
+/* The widest specimen determines one shared size at every viewport width. */
+.typefaces-page-card .typefaces-page-card__samples > span {
+  font-size: var(--typeface-sample-size, 8cqw);
+  line-height: 1.04;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}

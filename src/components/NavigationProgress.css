@@ -1,0 +1,5 @@
+.navigation-progress { position: fixed; inset: 0 0 auto; height: 2px; z-index: 2000; pointer-events: none; background: rgb(255 255 255 / .15); opacity: 0; animation: navigation-appear .15s ease .15s forwards; }
+.navigation-progress::after { content: ''; display: block; width: 35%; height: 100%; background: var(--paper); animation: navigation-slide 1.4s ease-in-out infinite; }
+@keyframes navigation-appear { to { opacity: 1; } }
+@keyframes navigation-slide { from { transform: translateX(-100%); } to { transform: translateX(390%); } }
+@media (prefers-reduced-motion: reduce) { .navigation-progress { animation: none; opacity: 1; } .navigation-progress::after { animation: none; width: 100%; } }

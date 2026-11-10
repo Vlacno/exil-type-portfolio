@@ -1,0 +1,5 @@
+.typeface-preparation { position: relative; min-width: 0; }
+/* Keep cards laid out for real-width measurements, but out of sight and focus
+   until both their fonts and shared fitted size are ready. */
+.typeface-preparation__grid--pending { position: absolute; inset: 0 0 auto; visibility: hidden; pointer-events: none; }
+.typefaces > .typeface-preparation > .content-skeleton { padding-inline: var(--page-gutter); }

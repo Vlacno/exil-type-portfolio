@@ -1,0 +1,34 @@
+{
+  "name": "portfolio-backend",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build"
+  },
+  "dependencies": {
+    "@sanity/icons": "^5.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sanity": "^6.18.0",
+    "styled-components": "^6.6.0"
+  },
+  "overrides": {
+    "@oclif/core": {
+      "minimatch": "11.0.1"
+    },
+    "@vercel/frameworks": {
+      "js-yaml": "3.15.2",
+      "smol-toml": "1.9.1"
+    },
+    "@module-federation/dts-plugin": {
+      "undici": "7.30.2"
+    },
+    "typeid-js": {
+      "uuid": "11.1.1"
+    }
+  }
+}

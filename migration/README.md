@@ -72,6 +72,14 @@ hashes are checked. Structural validation covers required fields, types, slugs,
 unique IDs/keys, Portable Text, allowed fonts and asset references. It does not
 check live permissions, existing dataset records or full Studio validation.
 
+Asset records are sorted by their content-derived key, and each asset's local
+paths are sorted before the approval hash is computed. This keeps concurrent
+image reads from changing the reviewed plan. Document, catalogue and Portable
+Text order are preserved. After the deterministic-ordering fix, regenerate and
+review any older local plan before applying it; do not reuse or replace its old
+approval hash. Existing cloud documents and reviewed files are not rewritten.
+See [the ordering diagnosis](PLAN_ORDER_DIAGNOSIS.md).
+
 ## Applying a reviewed import
 
 Cloud writes require separate authorization. Preparation did not run this mode.

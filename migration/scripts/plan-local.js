@@ -124,9 +124,14 @@ export async function buildPlan(root = ROOT) {
     { code: 'CONTENT_REVIEW', message: 'Publication descriptions and dates are local demo copy. Research summaries repeat; one bibliography entry has a relative/incomplete source path. Alt texts derived from existing captions/titles need editorial review.' },
     { code: 'ABOUT_CLAIMS', message: 'About retains existing PhD, institutional support and contact claims. Confirm these statements are appropriate for this independent portfolio.' },
   ]
+  // Concurrent reads must not make the reviewed manifest depend on I/O timing.
+  // Canonicalize assets and aliases without reordering documents or rich text.
+  const assetManifest = [...assets.values()]
+    .map((asset) => ({ ...asset, paths: [...asset.paths].sort() }))
+    .sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
   const plan = {
     format: 'exil-local-import-v1', target: { ...TARGET }, mode: 'drafts-only-create-missing',
-    sourceFingerprints: fingerprints, documents, assets: [...assets.values()], warnings,
+    sourceFingerprints: fingerprints, documents, assets: assetManifest, warnings,
     counts: Object.fromEntries(['researchArticle', 'publication', 'typeface', 'aboutPage'].map((type) => [type, documents.filter((doc) => doc._type === type).length])),
   }
   validatePlan(plan)

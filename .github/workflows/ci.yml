@@ -92,6 +92,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       VERCEL_TELEMETRY_DISABLED: '1'
       VERCEL_CLI_VERSION: 65.14.0
     steps:
@@ -130,8 +131,6 @@ jobs:
             node .github/scripts/release.js record "$deployment_url"
           fi
       - name: Check staged HTML, assets and licenses against verified hashes
-        env:
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node .github/scripts/release.js smoke
       - name: Check whether this deployment is already current
         id: current

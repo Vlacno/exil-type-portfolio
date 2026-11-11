@@ -1,5 +1,6 @@
 import test from 'node:test'
 import process from 'node:process'
+import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import assert from 'node:assert/strict'
@@ -7,7 +8,7 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
-import { assertCurrent, deploymentUrl, discoverDeployment, inventory, readProject, selectDeployment, verifyArtifact, verifyHosted } from './release.js'
+import { assertCurrent, assertReleaseCredentials, deploymentUrl, discoverDeployment, inventory, readProject, selectDeployment, verifyArtifact, verifyHosted } from './release.js'
 
 const env = { GITHUB_REPOSITORY: 'example/portfolio', GITHUB_SHA: 'a'.repeat(40), GITHUB_REF: 'refs/heads/main', GITHUB_EVENT_NAME: 'push', GH_TOKEN: 'synthetic-test-token' }
 const release = { sha: env.GITHUB_SHA, repository: env.GITHUB_REPOSITORY, digest: 'artifact-hash' }
@@ -47,7 +48,7 @@ test('artifact verification rejects edits and remote mismatches without writes o
     await writeFile(path.join(root, '.vercel/deployment.json'), JSON.stringify({ url: 'https://portfolio-tested.vercel.app' }))
     await verifyArtifact(root, env)
     await assert.rejects(verifyArtifact(root, { ...env, GITHUB_SHA: 'b'.repeat(40) }), /identity/)
-    const request = async (url, options) => { assert.equal(url, 'https://portfolio-tested.vercel.app/'); assert.equal(options.redirect, 'error'); assert.equal(options.headers['x-vercel-protection-bypass'], 'synthetic-bypass'); return new Response('<h1>CMS build</h1>') }
+    const request = async (url, options) => { assert.equal(url, 'https://portfolio-tested.vercel.app/'); assert.equal(options.redirect, 'manual'); assert.equal(options.headers['x-vercel-protection-bypass'], 'synthetic-bypass'); return new Response('<h1>CMS build</h1>') }
     await verifyHosted(root, { ...env, VERCEL_AUTOMATION_BYPASS_SECRET: 'synthetic-bypass' }, request)
     await assert.rejects(verifyHosted(root, env, async () => new Response('Wrong build')), /verification failed/)
     await writeFile(path.join(root, '.vercel/output/static/index.html'), 'Changed')
@@ -162,4 +163,117 @@ test('lookup CLI preserves verified files, removes stale selection, and stops sa
     assert.ok(path.basename(root).startsWith('portfolio-lookup-test-'))
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('protected staging credentials are required before any deployment or promotion', () => {
+  const credentials = { VERCEL_TOKEN: 'synthetic-api-token', VERCEL_ORG_ID: 'team_test', VERCEL_PROJECT_ID: 'prj_test', VERCEL_AUTOMATION_BYPASS_SECRET: 'synthetic-bypass' }
+  assert.doesNotThrow(() => assertReleaseCredentials(credentials))
+  for (const key of Object.keys(credentials)) {
+    for (const missing of [undefined, '', '   ']) {
+      assert.throws(() => assertReleaseCredentials({ ...credentials, [key]: missing }), { message: `Missing GitHub Secret: ${key}` })
+    }
+  }
+})
+
+async function hostedFixture(t) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'portfolio-hosted-test-'))
+  t.after(async () => {
+    assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir()) + path.sep))
+    assert.ok(path.basename(root).startsWith('portfolio-hosted-test-'))
+    await rm(root, { recursive: true, force: true })
+  })
+  const staticFiles = new Map([
+    ['assets/1-C6xQYD2F.jpg', Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 1, 2, 3, 0xff, 0xd9])],
+    ['assets/app.js', Buffer.from('console.log("verified")')],
+    ['fonts/OFL.txt', Buffer.from('Synthetic license fixture')],
+    ['fonts/test.woff2', Buffer.from([0x77, 0x4f, 0x46, 0x32, 0, 1, 2, 3])],
+    ['index.html', Buffer.from('<h1>Verified CMS build</h1>')],
+  ])
+  for (const [name, bytes] of staticFiles) {
+    const file = path.join(root, '.vercel/output/static', name)
+    await mkdir(path.dirname(file), { recursive: true })
+    await writeFile(file, bytes)
+  }
+  const files = await inventory(path.join(root, '.vercel/output'))
+  const metadata = { ...release, contentSource: 'sanity', files, digest: createHash('sha256').update(JSON.stringify(files)).digest('hex') }
+  await writeFile(path.join(root, '.vercel/release.json'), JSON.stringify(metadata))
+  await writeFile(path.join(root, '.vercel/deployment.json'), JSON.stringify({ url: 'https://portfolio-tested.vercel.app' }))
+  return { root, staticFiles }
+}
+
+test('staging verifies every binary asset, license and HTML byte with header-only authentication', async (t) => {
+  const { root, staticFiles } = await hostedFixture(t)
+  const visited = []
+  const secret = 'synthetic-bypass'
+  await verifyHosted(root, { ...env, VERCEL_AUTOMATION_BYPASS_SECRET: secret }, async (value, options) => {
+    const url = new URL(value)
+    assert.equal(url.origin, 'https://portfolio-tested.vercel.app')
+    assert.equal(url.search, '')
+    assert.equal(options.redirect, 'manual')
+    assert.deepEqual(options.headers, { 'x-vercel-protection-bypass': secret })
+    const name = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1))
+    visited.push(name)
+    assert.ok(staticFiles.has(name))
+    return new Response(staticFiles.get(name))
+  })
+  assert.deepEqual(visited, [...staticFiles.keys()])
+})
+
+test('staging reports protection challenges and blocks redirects without leaking credentials or Location', async (t) => {
+  const { root } = await hostedFixture(t)
+  const secret = 'synthetic-private-bypass'
+  for (const status of [301, 302, 303, 307, 308, 401, 403, 404, 500]) {
+    for (const configured of [false, true]) {
+      let calls = 0
+      await assert.rejects(verifyHosted(root, { ...env, VERCEL_AUTOMATION_BYPASS_SECRET: configured ? secret : '' }, async (url, options) => {
+        calls++
+        assert.equal(url, 'https://portfolio-tested.vercel.app/assets/1-C6xQYD2F.jpg')
+        assert.equal(options.redirect, 'manual')
+        assert.deepEqual(options.headers, configured ? { 'x-vercel-protection-bypass': secret } : {})
+        return new Response('private-response-body', { status, headers: { location: `https://vercel.com/sso-api?nonce=private-nonce&secret=${secret}` } })
+      }), (error) => {
+        assert.match(error.message, new RegExp(`HTTP ${status}`))
+        assert.match(error.message, /no hash comparison performed/)
+        assert.equal(error.message.includes(secret), false)
+        assert.equal(error.message.includes('private-nonce'), false)
+        assert.equal(error.message.includes('private-response-body'), false)
+        if (status < 400) assert.match(error.message, /Vercel Authentication redirect blocked/)
+        if (status < 400 || status === 401 || status === 403) assert.match(error.message, /VERCEL_AUTOMATION_BYPASS_SECRET/)
+        return true
+      })
+      assert.equal(calls, 1)
+    }
+  }
+  await assert.rejects(verifyHosted(root, env, async () => new Response('', { status: 302, headers: { location: 'https://untrusted.example/?private=value' } })), /HTTP 302 \(redirect blocked\)/)
+})
+
+test('staging rejects altered JPEG bytes and HTML masquerading as an asset with exact SHA-256 diagnostics', async (t) => {
+  const { root, staticFiles } = await hostedFixture(t)
+  const original = staticFiles.get('assets/1-C6xQYD2F.jpg')
+  const changed = Buffer.from(original)
+  changed[5] ^= 1
+  for (const bytes of [changed, Buffer.from('<html>Vercel Authentication</html>')]) {
+    const expected = createHash('sha256').update(original).digest('hex')
+    const actual = createHash('sha256').update(bytes).digest('hex')
+    await assert.rejects(verifyHosted(root, env, async () => new Response(bytes, { headers: { 'content-type': 'image/jpeg' } })), (error) => {
+      assert.match(error.message, /assets\/1-C6xQYD2F.jpg: HTTP 200, SHA-256 mismatch/)
+      assert.ok(error.message.includes(`expected ${expected}, received ${actual} (${bytes.length} bytes)`))
+      return true
+    })
+  }
+})
+
+test('staging distinguishes request and response-read failures without exposing provider errors', async (t) => {
+  const { root } = await hostedFixture(t)
+  await assert.rejects(verifyHosted(root, env, async () => { throw new Error('private-provider-error') }), { message: 'Staged artifact verification failed: assets/1-C6xQYD2F.jpg: request failed (network/TLS/timeout); no hash comparison performed' })
+  await assert.rejects(verifyHosted(root, env, async () => ({ ok: true, status: 200, arrayBuffer: async () => { throw new Error('private-provider-error') } })), { message: 'Staged artifact verification failed: assets/1-C6xQYD2F.jpg: HTTP 200, response body read failed; no hash comparison performed' })
+})
+test('preflight CLI stops on an empty bypass secret before any API request', () => {
+  const result = spawnSync(process.execPath, [path.resolve('.github/scripts/release.js'), 'preflight'], {
+    cwd: process.cwd(), encoding: 'utf8',
+    env: { ...process.env, ...env, VERCEL_TOKEN: 'synthetic-api-token', VERCEL_ORG_ID: 'team_test', VERCEL_PROJECT_ID: 'prj_test', VERCEL_AUTOMATION_BYPASS_SECRET: '' },
+  })
+  assert.equal(result.status, 1)
+  assert.equal(result.stderr.trim(), 'Missing GitHub Secret: VERCEL_AUTOMATION_BYPASS_SECRET')
+  assert.equal(result.stdout, '')
 })

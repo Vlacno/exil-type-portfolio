@@ -51,7 +51,7 @@ release workflow, deployment hook or workflow-run chain.
 7. Fetch the immutable staged deployment's HTML, scripts, styles, images, fonts
    and license files and compare them with the verified inventory. Redirects,
    deployment-protection login pages, HTTP errors and mismatched bytes block
-   promotion. An optional automation-bypass secret is sent only as an HTTP
+   promotion. The required automation-bypass secret is sent only as an HTTP
    header to that immutable Vercel host, never to the CMS or through redirects.
 8. Recheck main immediately before `vercel promote <same URL>`. This explicitly
    assigns production domains even when automatic assignment is disabled. An
@@ -76,7 +76,7 @@ wait timers for that environment. Put these secrets in that environment:
 | `VERCEL_TOKEN` | New portfolio/team-scoped Vercel token with project-read, deployment-read/list, deployment-create and production-promotion permission. Use an expiry and rotate it; never reuse customer credentials. |
 | `VERCEL_ORG_ID` | Owner/team ID of the independent Vercel project. |
 | `VERCEL_PROJECT_ID` | Independent frontend project ID, not a project name or the Sanity project ID. |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Required only if staged deployment URLs are protected. Use the project's Protection Bypass for Automation secret. |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Required for this protected staging pipeline and checked before deployment. Use the project's Protection Bypass for Automation secret. |
 
 `GITHUB_TOKEN` is supplied by Actions with `contents: read`. No personal GitHub
 token, Sanity token, CMS import token or `VITE_*` secret is needed. Vercel IDs
@@ -111,7 +111,8 @@ No branches, rules or environment settings were changed during preparation.
    public values at build time and does not download Vercel environment files.
    New build-time variables must be reviewed and added to CI deliberately.
 5. If staging URLs are protected, configure Protection Bypass for Automation and
-   the optional GitHub secret. Do not disable protection just to pass the check.
+   the required GitHub production-environment secret. Preflight rejects an empty
+   value before staging. Do not disable protection just to pass the check.
 6. Confirm the production origin already has the required independent Sanity
    access/CORS configuration. It was not changed. Live content/CORS availability
    is not proven by mocked browser tests; staged static-file checks do not write
@@ -205,3 +206,102 @@ still needs confirmation on the next authorized Linux run.
 - [Deployment lookup metadata](https://vercel.com/docs/cli/list)
 - [Automation protection bypass](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation)
 - [GitHub job concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+
+## Staging protection investigation: run #4 (11 November 2026)
+
+[Run 43093900605](https://github.com/Vlacno/exil-type-portfolio/actions/runs/43093900605)
+verified commit `1ae195d70567859c787fed5a28ba8910756efd3d` and created the
+READY staged deployment
+`https://exil-type-portfolio-headaa6rp-baronbaks-projects.vercel.app`.
+Promotion was never reached.
+
+The complete release-job log shows the CLI warning that Vercel Authentication
+is enabled and the smoke step's `VERCEL_AUTOMATION_BYPASS_SECRET` environment
+value is empty. The Vercel API token authenticates deployment-management API
+calls; it does not authenticate ordinary requests to a protected deployment.
+
+A read-only GET of the failing
+`/assets/1-C6xQYD2F.jpg` returned HTTP 302 to Vercel's `/sso-api`, with
+`Content-Type: text/plain` and a 263-byte authentication redirect body,
+not JPEG bytes. The patched checker reproduced this and reported
+`Vercel Authentication redirect blocked; no hash comparison performed`.
+The original checker combined HTTP failure and SHA-256 mismatch into the same
+error. Its historical HTTP status, headers and response digest were not logged;
+the current 302 must not be represented as that missing historical measurement.
+
+Deployment protection with a missing automation credential is the confirmed
+access blocker. There is no observed JPEG response demonstrating CDN image
+transformation or corrupted stored bytes. Fix authentication before assessing
+any remaining artifact mismatch; no image replacement or recompression is justified.
+
+### Byte-comparison evidence and limits
+
+- The run downloaded artifact `13889204403`,
+  `portfolio-1ae195d70567859c787fed5a28ba8910756efd3d-1`. GitHub's metadata
+  and the release log agree on ZIP SHA-256
+  `5b43cee51f82934fc75d43a0810d27158ae8314b434a2e96c8b1450b94ed925c`.
+  The log confirms that `release.js verify` validated its commit identity,
+  inventory and file hashes before upload.
+- The local source JPEG, local Vite output `assets/1-C6xQYD2F.jpg` and the
+  pre-existing local packaged asset have identical SHA-256
+  `fbbd68a1c46be968b93d062a273560b83a6a11340fbe86cce6c85190dd1732cd`;
+  the JPEG is 335,847 bytes. This is local evidence, not a fresh CI-artifact
+  extraction: the pre-existing local release manifest identifies commit
+  `8afb18773079a1434fa32fad8603c39c2cd2b56f`.
+- Attempts to download this run's ZIP through the GitHub connector timed out;
+  no archive was successfully extracted during this investigation.
+- Protected staging returned authentication bytes, so the actual deployed
+  JPEG could not be retrieved. An exact CI-file-versus-stored-JPEG hash
+  comparison initially required both artifact retrieval and authorized staging
+  access. The follow-up below resolves access; the CI archive remains unavailable.
+
+### Prepared correction and required configuration
+
+The release environment now supplies `VERCEL_AUTOMATION_BYPASS_SECRET` to the
+preflight as well as the smoke check. All preflights require it before creating
+a deployment or promoting one, since this project's staged URLs are protected.
+Populate that secret in GitHub's `production` environment (or an accessible
+repository secret) with an existing, valid Protection Bypass for Automation
+value from this independent Vercel project. Never use a customer token, a Vercel
+API token as the bypass value, or a `VITE_*` variable for the credential.
+
+No secret was generated, reset or copied during this work. Use an existing
+secret compatible with the staged deployment; changing/revoking secrets can
+affect existing deployments. Do not disable deployment protection or rerun the
+release workflow just to diagnose access: that workflow can promote. Once
+authorized access is available, perform only an isolated `smoke` check against
+the existing immutable URL and the downloaded, verified artifact.
+
+The checker now reports HTTP status separately from expected/received SHA-256
+and byte count. Redirects are inspected with `redirect: 'manual'` and always
+rejected; none are followed. Bypass values remain request headers only.
+Provider bodies, raw errors and redirect URLs/query strings are not logged.
+Every static file, including images, fonts and licenses, still requires the
+original exact SHA-256. Scoped discovery/reuse, artifact identity checks,
+live-main guards, serial releases and explicit promotion remain intact.
+
+Validation: ESLint passed; 14 release regression tests passed; all 50 offline
+maintenance/release tests passed; actionlint passed. Coverage includes all
+static asset categories, authentication failures, blocked redirects, changed
+JPEG bytes, HTML masquerading as an asset, and safe error diagnostics.
+No application, CMS, asset, dependency or Git metadata changes were made.
+No commit, push, workflow rerun, deployment or promotion was performed.
+
+### Follow-up: authenticated read-only image check
+
+After the owner created the automation bypass and supplied it through the ignored
+`.env.release.local`, a header-authenticated GET of the same immutable image URL
+returned HTTP 200, `Content-Type: image/jpeg`, and 335,847 bytes. Its SHA-256 was
+`fbbd68a1c46be968b93d062a273560b83a6a11340fbe86cce6c85190dd1732cd`, exactly
+matching the local built JPEG byte for byte. The authentication blocker is
+resolved for this read-only request; there is no observed byte transformation
+or corruption of this image relative to the local build.
+
+The GitHub artifact download still timed out. This follow-up does not establish
+equality with the exact run #4 archive or claim that every staged file passed
+its CI manifest. The GitHub secret's value cannot be read back, so local success
+does not independently verify that GitHub contains the same value.
+
+The secret was not printed or added to tracked files. Only an authenticated GET
+was sent to the existing immutable deployment. No release job was rerun, and no
+deploy, promotion, commit or push was performed.

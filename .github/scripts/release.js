@@ -74,17 +74,53 @@ export async function discoverDeployment(release, env, request = fetch) {
   return selectDeployment(data, release)
 }
 
+export function assertReleaseCredentials(env) {
+  for (const key of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID', 'VERCEL_AUTOMATION_BYPASS_SECRET']) {
+    if (!env[key]?.trim()) throw new Error(`Missing GitHub Secret: ${key}`)
+  }
+}
+
 export async function verifyHosted(root, env, request = fetch) {
   const release = await verifyArtifact(root, env)
   const { url } = await readJson(path.join(root, '.vercel/deployment.json'))
   const origin = deploymentUrl(url)
-  const headers = env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}
-  // Check the immutable staged origin only; never send a bypass secret through redirects.
+  const bypass = env.VERCEL_AUTOMATION_BYPASS_SECRET
+  const headers = bypass ? { 'x-vercel-protection-bypass': bypass } : {}
+  const protectionHint = bypass
+    ? 'Check that VERCEL_AUTOMATION_BYPASS_SECRET is valid for this project/deployment.'
+    : 'Protected deployments require the GitHub production-environment secret VERCEL_AUTOMATION_BYPASS_SECRET.'
+  // Inspect redirects without following them or forwarding the bypass credential.
   for (const file of release.files.filter((f) => f.path.startsWith('static/'))) {
     const name = file.path.slice('static/'.length)
     const target = name === 'index.html' ? `${origin}/` : `${origin}/${name.split('/').map(encodeURIComponent).join('/')}`
-    const response = await request(target, { headers, redirect: 'error', signal: AbortSignal.timeout(30_000) })
-    if (!response.ok || hash(Buffer.from(await response.arrayBuffer())) !== file.sha256) throw new Error(`Staged artifact verification failed: ${name}`)
+    const failure = `Staged artifact verification failed: ${name}`
+    let response
+    try {
+      response = await request(target, { headers, redirect: 'manual', signal: AbortSignal.timeout(30_000) })
+    } catch {
+      // Provider errors can contain request credentials; log no raw error/body/Location.
+      throw new Error(`${failure}: request failed (network/TLS/timeout); no hash comparison performed`)
+    }
+    if (!response.ok) {
+      let loginRedirect = false
+      try {
+        const location = new URL(response.headers.get('location'), target)
+        loginRedirect = location.hostname === 'vercel.com' && location.pathname === '/sso-api'
+      } catch { /* A missing or invalid Location is still an HTTP failure. */ }
+      const reason = loginRedirect ? 'Vercel Authentication redirect blocked' : response.status >= 300 && response.status < 400 ? 'redirect blocked' : 'HTTP error'
+      const hint = loginRedirect || response.status === 401 || response.status === 403 ? ` ${protectionHint}` : ''
+      throw new Error(`${failure}: HTTP ${response.status} (${reason}); no hash comparison performed.${hint}`)
+    }
+    let bytes
+    try {
+      bytes = Buffer.from(await response.arrayBuffer())
+    } catch {
+      throw new Error(`${failure}: HTTP ${response.status}, response body read failed; no hash comparison performed`)
+    }
+    const actual = hash(bytes)
+    if (actual !== file.sha256) {
+      throw new Error(`${failure}: HTTP ${response.status}, SHA-256 mismatch; expected ${file.sha256}, received ${actual} (${bytes.length} bytes)`)
+    }
   }
 }
 
@@ -116,7 +152,7 @@ async function main(command, argument) {
     return
   }
   if (command === 'preflight') {
-    for (const key of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID']) if (!env[key]) throw new Error(`Missing GitHub Secret: ${key}`)
+    assertReleaseCredentials(env)
     return assertCurrent(env)
   }
   const release = await verifyArtifact(root, env)

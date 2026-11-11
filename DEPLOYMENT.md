@@ -73,7 +73,7 @@ wait timers for that environment. Put these secrets in that environment:
 
 | Secret | Purpose |
 | --- | --- |
-| `VERCEL_TOKEN` | New portfolio/team-scoped Vercel token with project-read, deployment-create and production-promotion permission. Use an expiry and rotate it; never reuse customer credentials. |
+| `VERCEL_TOKEN` | New portfolio/team-scoped Vercel token with project-read, deployment-read/list, deployment-create and production-promotion permission. Use an expiry and rotate it; never reuse customer credentials. |
 | `VERCEL_ORG_ID` | Owner/team ID of the independent Vercel project. |
 | `VERCEL_PROJECT_ID` | Independent frontend project ID, not a project name or the Sanity project ID. |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Required only if staged deployment URLs are protected. Use the project's Protection Bypass for Automation secret. |
@@ -116,6 +116,17 @@ No branches, rules or environment settings were changed during preparation.
    access/CORS configuration. It was not changed. Live content/CORS availability
    is not proven by mocked browser tests; staged static-file checks do not write
    CMS data. Studio publication remains a separate process.
+
+## Deployment discovery
+
+`release.js lookup` verifies the configured project/owner and uses the read-only
+Vercel deployment API with explicit project and team IDs plus repository/commit
+metadata. It avoids CLI account/team display lookup, which failed with
+PROJECT_UNAUTHORIZED in commit `0032fa9` despite a successful scoped project read.
+The token must allow deployment listing. An authorization/network/invalid-response
+error blocks release; it is never converted into an empty result or a duplicate
+upload. See [RELEASE_DISCOVERY_REPORT.md](RELEASE_DISCOVERY_REPORT.md) for evidence,
+regression coverage and the limits of the non-debug log diagnosis.
 
 ## Concurrency and limits
 

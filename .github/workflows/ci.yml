@@ -113,15 +113,10 @@ jobs:
           tar -xzf "$RUNNER_TEMP/release/portfolio-release.tgz"
           node .github/scripts/release.js verify
           node .github/scripts/release.js link
+      - name: Find an existing deployment in the verified project and team
+        run: node .github/scripts/release.js lookup
       - name: Install pinned deployment CLI
         run: npm install --global "vercel@$VERCEL_CLI_VERSION" --ignore-scripts --no-audit --no-fund
-      - name: Find a previous deployment of this exact artifact
-        run: |
-          vercel list --environment=production --json \
-            --meta "portfolioRepository=$GITHUB_REPOSITORY" \
-            --meta "githubCommitSha=$GITHUB_SHA" \
-            --token "$VERCEL_TOKEN" > "$RUNNER_TEMP/deployments.json"
-          node .github/scripts/release.js select "$RUNNER_TEMP/deployments.json"
       - name: Stage production build without assigning domains
         run: |
           node .github/scripts/release.js preflight

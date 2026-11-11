@@ -1,7 +1,7 @@
 import process from 'node:process'
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
-import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,11 +28,11 @@ export async function verifyArtifact(root, env) {
   return release
 }
 
-async function api(url, token, request = fetch) {
+async function api(url, token, request = fetch, operation = 'Read-only API request') {
   if (!token) throw new Error('Missing API credential')
   const response = await request(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(30_000) })
-  if (!response.ok) throw new Error(`Read-only API request failed: HTTP ${response.status}`)
-  return response.json()
+  if (!response.ok) throw new Error(`${operation} failed: HTTP ${response.status}`)
+  try { return await response.json() } catch { throw new Error(`${operation} returned invalid JSON`) }
 }
 
 export async function assertCurrent(env, request = fetch) {
@@ -48,7 +48,7 @@ export function deploymentUrl(value) {
 }
 
 export function selectDeployment(data, release) {
-  if (!Array.isArray(data.deployments) || data.pagination?.next) throw new Error('Incomplete deployment list; inspect before retrying')
+  if (!data || !Array.isArray(data.deployments) || data.pagination?.next) throw new Error('Incomplete deployment list; inspect before retrying')
   const candidates = data.deployments.filter((d) => d.target === 'production' && d.meta?.portfolioRepository === release.repository && d.meta?.githubCommitSha === release.sha)
   if (candidates.length > 1) throw new Error('Multiple deployments for this commit; inspect before retrying')
   if (!candidates.length) return null
@@ -56,6 +56,22 @@ export function selectDeployment(data, release) {
   if (deployment.meta.portfolioBuild !== release.digest) throw new Error('This commit already has a different artifact; refuse a duplicate deployment')
   if ((deployment.state || deployment.readyState) !== 'READY') throw new Error('Existing deployment is not ready; refuse a duplicate deployment')
   return { url: deploymentUrl(deployment.url) }
+}
+
+export async function discoverDeployment(release, env, request = fetch) {
+  // CLI list also reads team/account metadata. Discovery needs only the verified
+  // project and its deployments, with the owner scope explicit on each request.
+  await readProject(env, request)
+  const query = new URLSearchParams({
+    projectId: env.VERCEL_PROJECT_ID,
+    teamId: env.VERCEL_ORG_ID,
+    target: 'production',
+    limit: '20',
+    'meta-portfolioRepository': release.repository,
+    'meta-githubCommitSha': release.sha,
+  })
+  const data = await api(`https://api.vercel.com/v6/deployments?${query}`, env.VERCEL_TOKEN, request, 'Deployment discovery (check deployment-read permission for the configured project/team)')
+  return selectDeployment(data, release)
 }
 
 export async function verifyHosted(root, env, request = fetch) {
@@ -109,6 +125,12 @@ async function main(command, argument) {
   if (command === 'link') {
     await readProject(env)
     return json('.vercel/project.json', { orgId: env.VERCEL_ORG_ID, projectId: env.VERCEL_PROJECT_ID })
+  }
+  if (command === 'lookup') {
+    const selected = await discoverDeployment(release, env)
+    if (selected) await json(state, selected)
+    else await rm(state, { force: true })
+    return
   }
   if (command === 'select') {
     const selected = selectDeployment(await readJson(argument), release)

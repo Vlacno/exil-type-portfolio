@@ -44,8 +44,27 @@ function FittedTypefaceHero({ typeface }) {
       lastWidth = availableWidth
       hero.style.removeProperty('--hero-fitted-size')
       const baseSize = Number.parseFloat(window.getComputedStyle(hero).fontSize)
-      const widestLine = Math.max(...Array.from(hero.querySelectorAll('.typeface-detail__hero-line span'), (line) => line.getBoundingClientRect().width))
-      if (widestLine > availableWidth - 2) hero.style.setProperty('--hero-fitted-size', `${baseSize * (availableWidth - 2) / widestLine}px`)
+      const lines = Array.from(hero.querySelectorAll('.typeface-detail__hero-line > span'))
+      const renderedWidth = () => Math.max(...lines.map((line) => line.getBoundingClientRect().width))
+      const targetWidth = availableWidth - 2
+      const widestLine = renderedWidth()
+      if (widestLine > targetWidth) {
+        const fittedSize = baseSize * targetWidth / widestLine
+        hero.style.setProperty('--hero-fitted-size', `${fittedSize}px`)
+        // Glyph metrics can be quantized differently across platforms. Keep the
+        // proportional size when it fits; otherwise verify each DOM-measured step.
+        if (renderedWidth() > targetWidth) {
+          let lower = 0
+          let upper = fittedSize
+          for (let step = 0; step < 14; step += 1) {
+            const candidate = (lower + upper) / 2
+            hero.style.setProperty('--hero-fitted-size', `${candidate}px`)
+            if (renderedWidth() <= targetWidth) lower = candidate
+            else upper = candidate
+          }
+          hero.style.setProperty('--hero-fitted-size', `${lower}px`)
+        }
+      }
     }
 
     const observer = new ResizeObserver(() => fit())

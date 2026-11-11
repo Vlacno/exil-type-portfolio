@@ -14,8 +14,9 @@ commercial website into an independent portfolio project.
   and explicit loading, empty and error states.
 - **Playwright:** local-content E2E tests, CMS fixtures and SDK transport checks;
   desktop and mobile Chromium, Firefox and WebKit coverage.
-- **GitHub Actions:** lint, production build and Chromium checks on pushes and
-  pull requests. CI contains no deployment job or production credentials.
+- **GitHub Actions:** lint, one CMS production build and Playwright checks on
+  pushes to `main`, followed by a gated Vercel staged deployment and explicit
+  promotion of the same verified build.
 
 ## Architecture
 
@@ -85,16 +86,19 @@ modify a live dataset.
 
 ## Deployment workflow
 
-1. Run local checks; GitHub Actions repeats lint, build and selected browser
-   checks for the clean repository.
-2. Run `npm run build` and inspect `dist/` locally with `npm run preview`.
-3. Publish the static build to a host of your choice as a separate authorized
-   action. Source variables are fixed at build time; allow the deployed origin
-   in Sanity CORS when CMS mode is enabled.
-4. Build Studio independently with `npm run studio:build`. Studio hosting and
-   content publication are separate from frontend deployment.
+Pushes to `main` run ESLint, offline safety tests and Playwright checks, including
+an actual CMS-mode production-build check. A successful run uploads that single
+verified build to Vercel without assigning domains, verifies the staged files,
+and explicitly promotes the same deployment to production.
 
-There is no automatic deployment, promotion or cloud content write in CI.
+Deployments use GitHub Secrets and reject stale commits. Vercel Git deployments
+must be disabled to avoid a second deployment bypassing CI. Production uses
+`VITE_CONTENT_SOURCE=sanity`; Studio hosting and content publication stay separate.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for required secrets, Vercel settings,
+concurrency guarantees and activation checks. Preparing this workflow does not
+activate it until committed/pushed and configured in GitHub/Vercel.
+
 See the [import guide](migration/README.md),
 [publication guide](migration/PUBLISHING.md) and
 [reviewed URL patch guide](migration/review/APPLY_RESEARCH_LINKS.md) for guarded

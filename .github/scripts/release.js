@@ -80,7 +80,7 @@ export function assertReleaseCredentials(env) {
   }
 }
 
-export async function verifyHosted(root, env, request = fetch) {
+export async function verifyHosted(root, env, request = fetch, { attempts = 12, delay = 5_000 } = {}) {
   const release = await verifyArtifact(root, env)
   const { url } = await readJson(path.join(root, '.vercel/deployment.json'))
   const origin = deploymentUrl(url)
@@ -95,11 +95,17 @@ export async function verifyHosted(root, env, request = fetch) {
     const target = name === 'index.html' ? `${origin}/` : `${origin}/${name.split('/').map(encodeURIComponent).join('/')}`
     const failure = `Staged artifact verification failed: ${name}`
     let response
-    try {
-      response = await request(target, { headers, redirect: 'manual', signal: AbortSignal.timeout(30_000) })
-    } catch {
-      // Provider errors can contain request credentials; log no raw error/body/Location.
-      throw new Error(`${failure}: request failed (network/TLS/timeout); no hash comparison performed`)
+    // A deployment reported "Ready" can briefly answer 404/5xx for static files
+    // while the edge catches up; retry only those statuses for about a minute.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        response = await request(target, { headers, redirect: 'manual', signal: AbortSignal.timeout(30_000) })
+      } catch {
+        // Provider errors can contain request credentials; log no raw error/body/Location.
+        throw new Error(`${failure}: request failed (network/TLS/timeout); no hash comparison performed`)
+      }
+      if (attempt >= attempts || (response.status !== 404 && response.status < 500)) break
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
     if (!response.ok) {
       let loginRedirect = false

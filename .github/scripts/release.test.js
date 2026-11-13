@@ -231,7 +231,7 @@ test('staging reports protection challenges and blocks redirects without leaking
         assert.equal(options.redirect, 'manual')
         assert.deepEqual(options.headers, configured ? { 'x-vercel-protection-bypass': secret } : {})
         return new Response('private-response-body', { status, headers: { location: `https://vercel.com/sso-api?nonce=private-nonce&secret=${secret}` } })
-      }), (error) => {
+      }, { attempts: 1 }), (error) => {
         assert.match(error.message, new RegExp(`HTTP ${status}`))
         assert.match(error.message, /no hash comparison performed/)
         assert.equal(error.message.includes(secret), false)
@@ -297,4 +297,21 @@ test('promotion uses project/team-scoped API calls and waits for the production 
   ])
   await assert.rejects(promoteDeployment('https://portfolio-tested.vercel.app', vercel, async (url) => url.includes('/v13/') ? Response.json({ id: 'dpl_1', projectId: 'other', target: 'production', readyState: 'READY' }) : project(), { attempts: 1, delay: 0 }), /not a ready production deployment/)
   await assert.rejects(promoteDeployment('https://portfolio-tested.vercel.app', vercel, async (url) => url.includes('/v13/') ? Response.json({ id: 'dpl_1', projectId: 'prj_x', target: 'production', readyState: 'READY' }) : new Response('', { status: 403 }), { attempts: 1, delay: 0 }), /Promotion request failed: HTTP 403/)
+})
+
+test('staging retries transient 404/5xx right after Ready but still fails on persistent errors', async (t) => {
+  const { root, staticFiles } = await hostedFixture(t)
+  const seen = new Map()
+  await verifyHosted(root, env, async (value) => {
+    const url = new URL(value)
+    const name = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1))
+    seen.set(name, (seen.get(name) || 0) + 1)
+    if (seen.get(name) === 1) return new Response('', { status: 404 })
+    if (seen.get(name) === 2) return new Response('', { status: 503 })
+    return new Response(staticFiles.get(name))
+  }, { attempts: 3, delay: 0 })
+  assert.ok([...seen.values()].every((count) => count === 3))
+  let calls = 0
+  await assert.rejects(verifyHosted(root, env, async () => { calls++; return new Response('', { status: 404 }) }, { attempts: 3, delay: 0 }), /HTTP 404/)
+  assert.equal(calls, 3)
 })

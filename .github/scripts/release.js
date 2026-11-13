@@ -28,9 +28,9 @@ export async function verifyArtifact(root, env) {
   return release
 }
 
-async function api(url, token, request = fetch, operation = 'Read-only API request') {
+async function api(url, token, request = fetch, operation = 'Read-only API request', method = 'GET') {
   if (!token) throw new Error('Missing API credential')
-  const response = await request(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(30_000) })
+  const response = await request(url, { method, headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(30_000) })
   if (!response.ok) throw new Error(`${operation} failed: HTTP ${response.status}`)
   try { return await response.json() } catch { throw new Error(`${operation} returned invalid JSON`) }
 }
@@ -132,9 +132,26 @@ export async function readProject(env, request = fetch) {
   return project
 }
 
-async function currentProduction(env) {
-  const project = await readProject(env)
+async function currentProduction(env, request = fetch) {
+  const project = await readProject(env, request)
   return project.targets?.production?.url ? deploymentUrl(project.targets.production.url) : null
+}
+
+export async function promoteDeployment(url, env, request = fetch, { attempts = 60, delay = 5_000 } = {}) {
+  // `vercel promote` also resolves user/team metadata, which fails with
+  // "User not found (404)" for some token/owner combinations. Promote through
+  // the project/team-scoped REST API instead, then wait for the target switch.
+  const origin = deploymentUrl(url)
+  const team = encodeURIComponent(env.VERCEL_ORG_ID)
+  const deployment = await api(`https://api.vercel.com/v13/deployments/${encodeURIComponent(new URL(origin).hostname)}?teamId=${team}`, env.VERCEL_TOKEN, request, 'Deployment lookup before promotion')
+  if (!deployment.id || deployment.projectId !== env.VERCEL_PROJECT_ID || deployment.target !== 'production' || (deployment.readyState || deployment.status) !== 'READY') throw new Error('Tested deployment is not a ready production deployment of the configured project')
+  const promote = await request(`https://api.vercel.com/v10/projects/${encodeURIComponent(env.VERCEL_PROJECT_ID)}/promote/${encodeURIComponent(deployment.id)}?teamId=${team}`, { method: 'POST', headers: { Authorization: `Bearer ${env.VERCEL_TOKEN}`, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(30_000) })
+  if (!promote.ok) throw new Error(`Promotion request failed: HTTP ${promote.status} (check that VERCEL_TOKEN can manage the configured project/team)`)
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (await currentProduction(env, request) === origin) return
+    await new Promise((resolve) => setTimeout(resolve, delay))
+  }
+  throw new Error('Promotion was accepted but production did not switch to the tested deployment in time')
 }
 
 async function main(command, argument) {
@@ -177,6 +194,7 @@ async function main(command, argument) {
   if (command === 'smoke') return verifyHosted(root, env)
   const { url } = await readJson(state)
   if (command === 'url') return console.log(deploymentUrl(url))
+  if (command === 'promote') return promoteDeployment(url, env)
   if (command === 'current' || command === 'confirm') {
     const current = await currentProduction(env)
     const matches = current === deploymentUrl(url)

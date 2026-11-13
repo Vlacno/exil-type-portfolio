@@ -139,8 +139,6 @@ jobs:
         run: node .github/scripts/release.js preflight
       - name: Assign production domains to the tested deployment
         if: steps.current.outputs.current != 'true'
-        run: |
-          vercel promote "$(node .github/scripts/release.js url)" \
-            --timeout=5m --token "$VERCEL_TOKEN"
+        run: node .github/scripts/release.js promote
       - name: Verify production target and report release
         run: node .github/scripts/release.js confirm

@@ -53,7 +53,9 @@ release workflow, deployment hook or workflow-run chain.
    deployment-protection login pages, HTTP errors and mismatched bytes block
    promotion. The required automation-bypass secret is sent only as an HTTP
    header to that immutable Vercel host, never to the CMS or through redirects.
-8. Recheck main immediately before `vercel promote <same URL>`. This explicitly
+8. Recheck main immediately before `release.js promote`, which calls the
+   project/team-scoped Vercel promote API for the same URL (the `vercel promote`
+   CLI failed with `User not found (404)` on this account). This explicitly
    assigns production domains even when automatic assignment is disabled. An
    already-current deployment is not promoted again. Verify the project's
    production target and record SHA/URL in the GitHub job summary.

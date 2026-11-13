@@ -8,7 +8,7 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
-import { assertCurrent, assertReleaseCredentials, deploymentUrl, discoverDeployment, inventory, readProject, selectDeployment, verifyArtifact, verifyHosted } from './release.js'
+import { assertCurrent, assertReleaseCredentials, deploymentUrl, discoverDeployment, inventory, promoteDeployment, readProject, selectDeployment, verifyArtifact, verifyHosted } from './release.js'
 
 const env = { GITHUB_REPOSITORY: 'example/portfolio', GITHUB_SHA: 'a'.repeat(40), GITHUB_REF: 'refs/heads/main', GITHUB_EVENT_NAME: 'push', GH_TOKEN: 'synthetic-test-token' }
 const release = { sha: env.GITHUB_SHA, repository: env.GITHUB_REPOSITORY, digest: 'artifact-hash' }
@@ -276,4 +276,25 @@ test('preflight CLI stops on an empty bypass secret before any API request', () 
   assert.equal(result.status, 1)
   assert.equal(result.stderr.trim(), 'Missing GitHub Secret: VERCEL_AUTOMATION_BYPASS_SECRET')
   assert.equal(result.stdout, '')
+})
+
+test('promotion uses project/team-scoped API calls and waits for the production target', async () => {
+  const vercel = { VERCEL_TOKEN: 'synthetic-token', VERCEL_ORG_ID: 'team_x', VERCEL_PROJECT_ID: 'prj_x' }
+  const calls = []
+  let promoted = false
+  const project = () => Response.json({ id: 'prj_x', accountId: 'team_x', targets: { production: { url: promoted ? 'portfolio-tested.vercel.app' : 'portfolio-old.vercel.app' } } })
+  const request = async (url, options) => {
+    calls.push(`${options.method} ${url}`)
+    assert.equal(options.redirect, 'error')
+    if (url.startsWith('https://api.vercel.com/v13/deployments/')) return Response.json({ id: 'dpl_1', projectId: 'prj_x', target: 'production', readyState: 'READY' })
+    if (url.includes('/promote/')) { promoted = true; return new Response(null, { status: 201 }) }
+    return project()
+  }
+  await promoteDeployment('https://portfolio-tested.vercel.app', vercel, request, { attempts: 3, delay: 0 })
+  assert.deepEqual(calls.slice(0, 2), [
+    'GET https://api.vercel.com/v13/deployments/portfolio-tested.vercel.app?teamId=team_x',
+    'POST https://api.vercel.com/v10/projects/prj_x/promote/dpl_1?teamId=team_x',
+  ])
+  await assert.rejects(promoteDeployment('https://portfolio-tested.vercel.app', vercel, async (url) => url.includes('/v13/') ? Response.json({ id: 'dpl_1', projectId: 'other', target: 'production', readyState: 'READY' }) : project(), { attempts: 1, delay: 0 }), /not a ready production deployment/)
+  await assert.rejects(promoteDeployment('https://portfolio-tested.vercel.app', vercel, async (url) => url.includes('/v13/') ? Response.json({ id: 'dpl_1', projectId: 'prj_x', target: 'production', readyState: 'READY' }) : new Response('', { status: 403 }), { attempts: 1, delay: 0 }), /Promotion request failed: HTTP 403/)
 })
